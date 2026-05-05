@@ -14,8 +14,8 @@ const ProfilePage = () => {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    phone: user?.whatsapp || '',
-    location: user?.place || '',
+    phone: user?.phone || user?.whatsapp || '',
+    location: user?.address || user?.place || '',
   });
 
   const handleInputChange = (e) => {
@@ -33,8 +33,8 @@ const ProfilePage = () => {
       setFormData({
         name: updatedUser.name || '',
         email: updatedUser.email || '',
-        phone: updatedUser.whatsapp || '',
-        location: updatedUser.place || '',
+        phone: updatedUser.phone || '',
+        location: updatedUser.address || '',
       });
       toast.success(t('success.profile_updated'));
       setIsEditing(false);
