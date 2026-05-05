@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
 
 const PaymentReturnPage = () => {
   const { appOrderId } = useParams();
@@ -12,7 +11,7 @@ const PaymentReturnPage = () => {
   const [syncStatus, setSyncStatus] = useState('checking'); // 'checking', 'paid', 'pending', 'error'
 
   // Verify payment status with backend (which checks Cashfree)
-  const verifyPaymentStatus = async (retryCount = 0) => {
+  const verifyPaymentStatus = useCallback(async (retryCount = 0) => {
     try {
       setSyncing(true);
       const response = await axios.post(
@@ -48,7 +47,7 @@ const PaymentReturnPage = () => {
       setSyncing(false);
       return false;
     }
-  };
+  }, [appOrderId]);
 
   useEffect(() => {
     // Clean up sessionStorage
@@ -73,7 +72,7 @@ const PaymentReturnPage = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [appOrderId, navigate]);
+  }, [appOrderId, navigate, verifyPaymentStatus]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F8FAFC] to-[#E8EFF7] flex items-center justify-center p-4">
