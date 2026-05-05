@@ -47,6 +47,8 @@ const PaymentPage = () => {
 
     try {
       // Step 1: Create Cashfree order on backend
+      console.log('[Payment] Requesting Cashfree session for order:', orderData.id);
+      
       const res = await paymentService.createCashfreeOrder({
         amount:        Number(orderData.total_amount),
         appOrderId:    orderData.id,
@@ -55,26 +57,47 @@ const PaymentPage = () => {
         customerPhone: orderData.customer_phone || '9999999999',
       });
 
+      console.log('[Payment] Backend response:', { 
+        has_session: !!res.data.payment_session_id,
+        has_order: !!res.data.cf_order_id,
+      });
+
       const { cf_order_id, payment_session_id } = res.data;
 
       if (!payment_session_id) {
-        throw new Error('Payment session could not be created. Please try again.');
+        throw new Error('Backend did not return a payment session. Response: ' + JSON.stringify(res.data));
       }
 
+      if (typeof payment_session_id !== 'string' || payment_session_id.trim() === '') {
+        throw new Error('Invalid payment_session_id format: ' + typeof payment_session_id);
+      }
+
+      console.log('[Payment] Got valid session, storing order ID and redirecting...');
+      
       // Store cf_order_id for verification on the return page
       sessionStorage.setItem('cf_order_id_' + orderData.id, cf_order_id);
 
-      // Skip the Cashfree JS SDK (requires domain whitelisting).
-      // Redirect directly to Cashfree's hosted checkout URL — works on localhost.
+      // Redirect directly to Cashfree's hosted checkout URL
+      // Must match production/sandbox mode configured on backend
       const env = process.env.REACT_APP_CASHFREE_ENV || 'production';
       const baseUrl = env === 'production'
         ? 'https://payments.cashfree.com/order'
         : 'https://sandbox.cashfreepayments.com/order';
-      window.location.href = `${baseUrl}/#${payment_session_id}`;
-      // Browser navigates away — execution stops here
+      
+      const checkoutUrl = `${baseUrl}/#${payment_session_id}`;
+      console.log('[Payment] Redirecting to:', baseUrl, 'with session starting:', payment_session_id.substring(0, 20) + '...');
+      
+      // Use a small delay to ensure sessionStorage is written before navigation
+      setTimeout(() => {
+        window.location.href = checkoutUrl;
+      }, 100);
 
     } catch (err) {
-      console.error('Cashfree payment error:', err);
+      console.error('[Payment] Error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       toast.error(err.response?.data?.message || err.message || 'Payment failed. Please try again.');
       setProcessing(false);
     }
