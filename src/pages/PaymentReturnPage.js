@@ -26,7 +26,11 @@ const PaymentReturnPage = () => {
       if (!cf_order_id) {
         console.error('[PaymentReturn] No cf_order_id found - cannot verify payment');
         // Even without cf_order_id, let user navigate to orders to check status
-        setStatus('unknown');
+        setTimeout(() => {
+          console.log('[PaymentReturn] Navigating to orders (no cf_order_id)');
+          setStatus('unknown');
+          setTimeout(() => navigate('/orders'), 2000);
+        }, 1000);
         return;
       }
 
@@ -62,8 +66,10 @@ const PaymentReturnPage = () => {
           // Retry once after 3 seconds
           setTimeout(verify, 3000);
         } else {
-          console.log('[PaymentReturn] Verification API unavailable - showing recovery options');
+          console.log('[PaymentReturn] Verification API unavailable - auto-navigating to orders');
           setStatus('api_error');
+          // Auto-navigate after showing error for 3 seconds
+          setTimeout(() => navigate('/orders'), 3000);
         }
       }
     };
@@ -207,20 +213,18 @@ const PaymentReturnPage = () => {
               We're having trouble verifying your payment for order <span className="font-semibold">#{appOrderId}</span>.
             </p>
             <p className="text-sm text-[#64748B] mb-6">
-              Your payment may have been processed. Please check your orders page for the latest status.
+              ✅ Your payment may have been processed successfully. We're redirecting you to check your orders...
             </p>
-            <div className="space-y-3">
+            <div className="mt-6 w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-red-500 h-full rounded-full animate-[width_3s_linear]" style={{ width: '100%', transition: 'width 3s linear' }} />
+            </div>
+            <p className="text-xs text-[#64748B] mt-4">Auto-redirecting in 3 seconds...</p>
+            <div className="space-y-3 mt-6">
               <button
                 onClick={() => navigate('/orders')}
                 className="w-full px-6 py-3 bg-gradient-to-r from-[#10b981] to-[#059669] text-white font-bold rounded-xl hover:shadow-lg transition-all"
               >
-                Check My Orders
-              </button>
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full px-6 py-3 border border-gray-200 text-[#64748B] font-semibold rounded-xl hover:bg-gray-50 transition-all"
-              >
-                Retry Verification
+                Check My Orders Now
               </button>
             </div>
           </>
