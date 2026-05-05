@@ -25,7 +25,8 @@ const PaymentReturnPage = () => {
 
       if (!cf_order_id) {
         console.error('[PaymentReturn] No cf_order_id found - cannot verify payment');
-        setStatus('failed');
+        // Even without cf_order_id, let user navigate to orders to check status
+        setStatus('unknown');
         return;
       }
 
@@ -35,29 +36,34 @@ const PaymentReturnPage = () => {
         sessionStorage.removeItem(`cf_order_id_${appOrderId}`);
 
         if (res.data.success && res.data.status === 'PAID') {
-          console.log('[PaymentReturn] Payment verified successfully');
+          console.log('[PaymentReturn] ✅ Payment verified successfully');
           setStatus('success');
-          toast.success('Payment successful!');
+          toast.success('✅ Payment successful!');
           setTimeout(() => navigate('/orders'), 3000);
         } else {
-          console.log('[PaymentReturn] Payment not in PAID status:', res.data.status);
-          setStatus('failed');
-          toast.error('Payment could not be verified. Please check your order status.');
+          console.log('[PaymentReturn] Payment status:', res.data.status);
+          // Even if not PAID yet, show verification pending and let user check orders
+          setStatus('pending');
+          toast.info(`Payment status: ${res.data.status}. Check your orders page for updates.`);
+          setTimeout(() => navigate('/orders'), 5000);
         }
       } catch (err) {
         console.error('[PaymentReturn] Verification error:', {
           message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
+          responseStatus: err.response?.status,
+          responseData: err.response?.data,
         });
         
-        // If verification fails, but we have an order ID, allow manual navigation
-        if (verificationAttempts < 2) {
+        // If verification API fails, still allow user to check orders
+        // (Payment may have gone through even if our API has issues)
+        if (verificationAttempts < 1) {
           setVerificationAttempts(prev => prev + 1);
-          // Retry once after 2 seconds
-          setTimeout(verify, 2000);
+          console.log('[PaymentReturn] Retrying verification...');
+          // Retry once after 3 seconds
+          setTimeout(verify, 3000);
         } else {
-          setStatus('timeout');
+          console.log('[PaymentReturn] Verification API unavailable - showing recovery options');
+          setStatus('api_error');
         }
       }
     };
@@ -145,6 +151,76 @@ const PaymentReturnPage = () => {
                 className="w-full px-6 py-3 border border-gray-200 text-[#64748B] font-semibold rounded-xl hover:bg-gray-50 transition-all"
               >
                 Refresh & Retry
+              </button>
+            </div>
+          </>
+        )}
+
+        {status === 'pending' && (
+          <>
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Loader size={48} className="text-blue-500 animate-spin" />
+            </div>
+            <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Payment Pending</h1>
+            <p className="text-[#64748B] mb-2">
+              Your payment is being processed for order <span className="font-semibold">#{appOrderId}</span>.
+            </p>
+            <p className="text-sm text-[#64748B] mb-6">
+              We'll redirect you to your orders page in a moment to check the status.
+            </p>
+            <div className="mt-6 w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-blue-500 h-full rounded-full animate-[width_5s_linear]" style={{ width: '100%', transition: 'width 5s linear' }} />
+            </div>
+          </>
+        )}
+
+        {status === 'unknown' && (
+          <>
+            <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <AlertCircle size={48} className="text-purple-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Payment Status Unknown</h1>
+            <p className="text-[#64748B] mb-2">
+              We couldn't determine the status of your payment for order <span className="font-semibold">#{appOrderId}</span>.
+            </p>
+            <p className="text-sm text-[#64748B] mb-6">
+              Please check your orders page to see the current status.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => navigate('/orders')}
+                className="w-full px-6 py-3 bg-gradient-to-r from-[#10b981] to-[#059669] text-white font-bold rounded-xl hover:shadow-lg transition-all"
+              >
+                View My Orders
+              </button>
+            </div>
+          </>
+        )}
+
+        {status === 'api_error' && (
+          <>
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <AlertCircle size={48} className="text-red-500" />
+            </div>
+            <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Verification Service Unavailable</h1>
+            <p className="text-[#64748B] mb-2">
+              We're having trouble verifying your payment for order <span className="font-semibold">#{appOrderId}</span>.
+            </p>
+            <p className="text-sm text-[#64748B] mb-6">
+              Your payment may have been processed. Please check your orders page for the latest status.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => navigate('/orders')}
+                className="w-full px-6 py-3 bg-gradient-to-r from-[#10b981] to-[#059669] text-white font-bold rounded-xl hover:shadow-lg transition-all"
+              >
+                Check My Orders
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full px-6 py-3 border border-gray-200 text-[#64748B] font-semibold rounded-xl hover:bg-gray-50 transition-all"
+              >
+                Retry Verification
               </button>
             </div>
           </>
