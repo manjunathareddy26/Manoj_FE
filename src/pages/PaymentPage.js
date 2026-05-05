@@ -46,7 +46,6 @@ const PaymentPage = () => {
     setProcessing(true);
 
     try {
-      // Step 1: Create Cashfree order on backend
       console.log('[Payment] Requesting Cashfree session for order:', orderData.id);
       
       const res = await paymentService.createCashfreeOrder({
@@ -57,40 +56,28 @@ const PaymentPage = () => {
         customerPhone: orderData.customer_phone || '9999999999',
       });
 
-      console.log('[Payment] Backend response:', { 
-        has_session: !!res.data.payment_session_id,
-        has_order: !!res.data.cf_order_id,
-      });
-
       const { cf_order_id, payment_session_id } = res.data;
 
-      if (!payment_session_id) {
-        throw new Error('Backend did not return a payment session. Response: ' + JSON.stringify(res.data));
+      console.log('[Payment] Got session ID length:', payment_session_id?.length);
+
+      if (!payment_session_id || typeof payment_session_id !== 'string' || !payment_session_id.trim()) {
+        throw new Error('Invalid payment session received from server');
       }
 
-      if (typeof payment_session_id !== 'string' || payment_session_id.trim() === '') {
-        throw new Error('Invalid payment_session_id format: ' + typeof payment_session_id);
-      }
-
-      console.log('[Payment] Got valid session, storing order ID and redirecting...');
-      
-      // Store cf_order_id for verification on the return page
+      // Store cf_order_id for verification on return page (fallback)
       sessionStorage.setItem('cf_order_id_' + orderData.id, cf_order_id);
 
-      // Redirect directly to Cashfree's hosted checkout URL
-      // Must match production/sandbox mode configured on backend
+      // ✅ FIX: use ?session_id= NOT /#
       const env = process.env.REACT_APP_CASHFREE_ENV || 'production';
       const baseUrl = env === 'production'
         ? 'https://payments.cashfree.com/order'
         : 'https://sandbox.cashfreepayments.com/order';
-      
+
       const checkoutUrl = `${baseUrl}?session_id=${payment_session_id}`;
-      console.log('[Payment] Checkout URL:', checkoutUrl);
-      console.log('[Payment] Session ID length:', payment_session_id.length);
       
-      // Redirect IMMEDIATELY to avoid session expiry (no setTimeout delay)
-      // Cashfree session IDs have short TTL; delaying can cause "client session is invalid" error
-      sessionStorage.setItem('cf_order_id_' + orderData.id, cf_order_id);
+      console.log('[Payment] Redirecting to Cashfree checkout...');
+
+      // ✅ FIX: No setTimeout — redirect immediately to avoid session expiry
       window.location.href = checkoutUrl;
 
     } catch (err) {
