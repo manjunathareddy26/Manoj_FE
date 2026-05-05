@@ -143,18 +143,18 @@ function App() {
             }
           />
           <Route
-            path="/payment/:orderId"
-            element={
-              <ProtectedRoute>
-                <PaymentPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/payment/return/:appOrderId"
             element={
               <ProtectedRoute>
                 <PaymentReturnPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/:orderId"
+            element={
+              <ProtectedRoute>
+                <PaymentPage />
               </ProtectedRoute>
             }
           />
