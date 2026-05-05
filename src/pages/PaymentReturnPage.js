@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Loader } from 'lucide-react';
-import axios from 'axios';
+import * as paymentService from '../services/index';
 
 const PaymentReturnPage = () => {
   const { appOrderId } = useParams();
@@ -14,14 +14,10 @@ const PaymentReturnPage = () => {
   const verifyPaymentStatus = useCallback(async (retryCount = 0) => {
     try {
       setSyncing(true);
-      const response = await axios.post(
-        `/api/payments/cashfree/sync/${appOrderId}`,
-        {},
-        { 
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-          timeout: 10000,
-        }
-      );
+      console.log('[PaymentReturn] Calling sync endpoint for order:', appOrderId);
+      
+      // Use the configured API client which has the correct baseURL
+      const response = await paymentService.syncPaymentStatus(appOrderId);
 
       console.log('[PaymentReturn] Sync response:', response.data);
 

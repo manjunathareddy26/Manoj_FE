@@ -130,6 +130,9 @@ export const paymentService = {
   // Verify Cashfree payment by cf_order_id
   verifyCashfreePayment: (data) => api.post('/payments/cashfree/verify', data),
 
+  // Sync payment status from Cashfree and update database
+  syncPaymentStatus: (appOrderId) => api.post(`/payments/cashfree/sync/${appOrderId}`, {}),
+
   // Get payment status
   getPaymentStatus: (orderId) => api.get(`/payments/status/${orderId}`),
 };
