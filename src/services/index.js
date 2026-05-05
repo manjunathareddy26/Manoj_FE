@@ -117,6 +117,9 @@ export const orderService = {
   
   // Update payment status
   updatePaymentStatus: (id, paymentStatus) => api.put(`/orders/${id}/payment-status`, { paymentStatus }),
+
+  // Delete order (consumer — delivered or rejected only)
+  deleteOrder: (id) => api.delete(`/orders/${id}`),
 };
 
 // Payments API calls

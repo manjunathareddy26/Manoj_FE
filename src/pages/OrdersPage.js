@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, MapPin, CreditCard, Calendar,  AlertCircle } from 'lucide-react';
+import { Package, Eye, MapPin, CreditCard, Calendar, AlertCircle, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { orderService } from '../services/index';
 
@@ -99,6 +99,8 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // order to confirm deletion
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -114,6 +116,21 @@ const OrdersPage = () => {
       toast.error('Failed to load orders');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    try {
+      await orderService.deleteOrder(deleteConfirm.id);
+      setOrders(prev => prev.filter(o => o.id !== deleteConfirm.id));
+      toast.success('Order deleted successfully');
+      setDeleteConfirm(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete order');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -364,6 +381,17 @@ const OrdersPage = () => {
                           <Eye size={16} />
                           View Details
                         </button>
+
+                        {/* Delete Button — only for delivered or rejected */}
+                        {(order.status === 'delivered' || order.status === 'rejected') && (
+                          <button
+                            onClick={() => setDeleteConfirm(order)}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-500 font-semibold rounded-lg hover:bg-red-100 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                            Delete Order
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -471,6 +499,42 @@ const OrdersPage = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Trash2 size={24} className="text-red-500" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-[#0F172A]">Delete Order?</h2>
+                <p className="text-sm text-[#64748B]">Order #{deleteConfirm.id}</p>
+              </div>
+            </div>
+            <p className="text-[#64748B] mb-6">
+              This will permanently remove this order from your history. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                className="flex-1 px-6 py-3 border-2 border-[#E2E8F0] text-[#0F172A] font-semibold rounded-xl hover:bg-[#F8FAFC] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteOrder}
+                disabled={deleting}
+                className="flex-1 px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}
