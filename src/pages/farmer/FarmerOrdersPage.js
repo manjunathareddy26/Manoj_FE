@@ -305,9 +305,6 @@ const FarmerOrdersPage = () => {
             <p className="text-sm font-bold text-yellow-800">
               {counts.pending} new order{counts.pending > 1 ? 's' : ''} waiting for your response!
             </p>
-            <button onClick={() => setFilterStatus('pending')} className="ml-auto text-xs font-bold text-yellow-700 underline whitespace-nowrap">
-              View now &rarr;
-            </button>
           </div>
         )}
 
