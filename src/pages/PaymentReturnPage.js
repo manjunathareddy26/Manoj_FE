@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Loader } from 'lucide-react';
-import * as paymentService from '../services/index';
+import { paymentService } from '../services/index';
 
 const PaymentReturnPage = () => {
   const { appOrderId } = useParams();
