@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Package, Eye, MapPin, CreditCard, Calendar, AlertCircle, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { orderService } from '../services/index';
@@ -95,6 +95,7 @@ const OrderTracker = ({ order, compact = false }) => {
 
 const OrdersPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -104,7 +105,24 @@ const OrdersPage = () => {
 
   useEffect(() => {
     fetchOrders();
+
+    // Refetch orders when page comes back into focus (after payment redirect)
+    const handleFocus = () => {
+      console.log('[OrdersPage] Page regained focus, refetching orders...');
+      fetchOrders();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
+
+  // Auto-refetch if coming from payment return page
+  useEffect(() => {
+    if (searchParams.get('refresh') === '1') {
+      console.log('[OrdersPage] Refresh flag detected, refetching orders...');
+      fetchOrders();
+    }
+  }, [searchParams]);
 
   const fetchOrders = async () => {
     try {

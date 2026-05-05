@@ -19,7 +19,8 @@ const PaymentReturnPage = () => {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(interval);
-          navigate('/orders');
+          // Navigate with refresh flag to force OrdersPage to refetch
+          navigate('/orders?refresh=1');
           return 0;
         }
         return prev - 1;
@@ -52,7 +53,7 @@ const PaymentReturnPage = () => {
         </div>
 
         <button
-          onClick={() => navigate('/orders')}
+          onClick={() => navigate('/orders?refresh=1')}
           className="mt-6 w-full px-6 py-3 bg-gradient-to-r from-[#10b981] to-[#059669] text-white font-bold rounded-xl hover:shadow-lg transition-all"
         >
           Go to Orders Now
