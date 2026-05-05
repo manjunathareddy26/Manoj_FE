@@ -99,7 +99,7 @@ const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all'); // 'all', 'paid', 'pending'
   const [deleteConfirm, setDeleteConfirm] = useState(null); // order to confirm deletion
   const [deleting, setDeleting] = useState(false);
 
@@ -198,9 +198,24 @@ const OrdersPage = () => {
     return labels[status] || status;
   };
 
-  const filteredOrders = filterStatus === 'all' 
-    ? orders 
-    : orders.filter(order => order.status === filterStatus);
+  const filteredOrders = (() => {
+    let filtered = orders;
+    
+    // Filter by payment status
+    if (paymentFilter === 'paid') {
+      filtered = filtered.filter(order => order.payment_status === 'paid');
+    } else if (paymentFilter === 'pending') {
+      filtered = filtered.filter(order => order.payment_status === 'pending_payment' || order.payment_status === 'unpaid' || !order.payment_status);
+    }
+    
+    // Sort: Paid orders first, then by date (newest first)
+    return filtered.sort((a, b) => {
+      const aIsPaid = a.payment_status === 'paid' ? 0 : 1;
+      const bIsPaid = b.payment_status === 'paid' ? 0 : 1;
+      if (aIsPaid !== bIsPaid) return aIsPaid - bIsPaid;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+  })();
 
   if (loading) {
     return (
@@ -247,31 +262,38 @@ const OrdersPage = () => {
           </div>
         ) : (
           <>
-            {/* Filter Tabs */}
+            {/* Filter Tabs - Payment Status */}
             <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
               <button
-                onClick={() => setFilterStatus('all')}
-                className={`px-4 py-2 rounded-full font-semibold whitespace-nowrap transition-all ${
-                  filterStatus === 'all'
-                    ? 'bg-[#10b981] text-white'
-                    : 'bg-white text-[#64748B] border border-[#E2E8F0]'
+                onClick={() => setPaymentFilter('all')}
+                className={`px-5 py-2 rounded-full font-semibold whitespace-nowrap transition-all ${
+                  paymentFilter === 'all'
+                    ? 'bg-[#10b981] text-white shadow-md'
+                    : 'bg-white text-[#64748B] border border-[#E2E8F0] hover:bg-[#F0FDF4]'
                 }`}
               >
-                All ({orders.length})
+                All Orders ({orders.length})
               </button>
-              {['pending', 'confirmed', 'shipped', 'delivered'].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setFilterStatus(status)}
-                  className={`px-4 py-2 rounded-full font-semibold whitespace-nowrap transition-all ${
-                    filterStatus === status
-                      ? 'bg-[#10b981] text-white'
-                      : 'bg-white text-[#64748B] border border-[#E2E8F0]'
-                  }`}
-                >
-                  {getStatusLabel(status).split(' ')[1]} ({orders.filter(o => o.status === status).length})
-                </button>
-              ))}
+              <button
+                onClick={() => setPaymentFilter('paid')}
+                className={`px-5 py-2 rounded-full font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                  paymentFilter === 'paid'
+                    ? 'bg-green-500 text-white shadow-md'
+                    : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'
+                }`}
+              >
+                ✅ Paid ({orders.filter(o => o.payment_status === 'paid').length})
+              </button>
+              <button
+                onClick={() => setPaymentFilter('pending')}
+                className={`px-5 py-2 rounded-full font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                  paymentFilter === 'pending'
+                    ? 'bg-orange-500 text-white shadow-md'
+                    : 'bg-white text-orange-700 border border-orange-300 hover:bg-orange-50'
+                }`}
+              >
+                ⏳ Pending ({orders.filter(o => !o.payment_status || o.payment_status === 'pending_payment' || o.payment_status === 'unpaid').length})
+              </button>
             </div>
 
             {/* Orders List */}

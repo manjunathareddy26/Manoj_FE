@@ -124,7 +124,7 @@ const FarmerOrdersPage = () => {
   const [rejectModal,   setRejectModal]   = useState(null);
   const [rejectReason,  setRejectReason]  = useState('');
   const [processing,    setProcessing]    = useState(false);
-  const [filterStatus,  setFilterStatus]  = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all'); // 'all', 'paid', 'pending'
 
   // â”€â”€ Fetch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchOrders = useCallback(async (silent = false) => {
@@ -216,24 +216,37 @@ const FarmerOrdersPage = () => {
   // â”€â”€ Filter counts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const counts = orders.reduce((acc, o) => { acc[o.status] = (acc[o.status] || 0) + 1; return acc; }, {});
 
+  // Payment status counts
+  const paidCount = orders.filter(o => o.payment_status === 'paid').length;
+  const pendingPaymentCount = orders.filter(o => !o.payment_status || o.payment_status === 'pending_payment' || o.payment_status === 'unpaid').length;
+
   const FILTER_TABS = [
-    { key: 'all',       label: 'All',        count: orders.length },
-    { key: 'pending',   label: 'New',       count: counts.pending   || 0 },
-    { key: 'accepted',  label: 'Accepted',  count: counts.accepted  || 0 },
-    { key: 'confirmed', label: 'Preparing', count: counts.confirmed || 0 },
-    { key: 'packed',    label: 'Packed',    count: counts.packed    || 0 },
-    { key: 'shipped',   label: 'Shipped',   count: counts.shipped   || 0 },
-    { key: 'delivered', label: 'Delivered', count: counts.delivered || 0 },
-    { key: 'rejected',  label: 'Rejected',  count: counts.rejected  || 0 },
+    { key: 'all',       label: 'All Orders',        count: orders.length },
+    { key: 'paid',      label: '✅ Paid',           count: paidCount },
+    { key: 'pending',   label: '⏳ Pending Payment', count: pendingPaymentCount },
   ];
 
-  const filteredOrders = (filterStatus === 'all' ? orders : orders.filter(o => o.status === filterStatus))
-    .slice()
-    .sort((a, b) => {
+  const filteredOrders = (() => {
+    let filtered = orders;
+    
+    // Filter by payment status
+    if (paymentFilter === 'paid') {
+      filtered = filtered.filter(o => o.payment_status === 'paid');
+    } else if (paymentFilter === 'pending') {
+      filtered = filtered.filter(o => !o.payment_status || o.payment_status === 'pending_payment' || o.payment_status === 'unpaid');
+    }
+    
+    // Sort: Paid orders first, then by status priority, then by date
+    return filtered.slice().sort((a, b) => {
+      const aIsPaid = a.payment_status === 'paid' ? 0 : 1;
+      const bIsPaid = b.payment_status === 'paid' ? 0 : 1;
+      if (aIsPaid !== bIsPaid) return aIsPaid - bIsPaid;
+      
       const p = { pending: 0, accepted: 1, confirmed: 2, packed: 3, shipped: 4, delivered: 5, rejected: 6 };
       if (p[a.status] !== p[b.status]) return p[a.status] - p[b.status];
       return new Date(b.created_at) - new Date(a.created_at);
     });
+  })();
 
   if (loading) {
     return (
@@ -306,20 +319,24 @@ const FarmerOrdersPage = () => {
           </div>
         ) : (
           <>
-            {/* Filter Tabs */}
+            {/* Filter Tabs - Payment Status */}
             <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
               {FILTER_TABS.map(tab => (
                 <button
                   key={tab.key}
-                  onClick={() => setFilterStatus(tab.key)}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all border ${
-                    filterStatus === tab.key
-                      ? 'bg-[#10b981] text-white border-[#10b981] shadow-sm'
+                  onClick={() => setPaymentFilter(tab.key)}
+                  className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all border ${
+                    paymentFilter === tab.key
+                      ? tab.key === 'paid' 
+                        ? 'bg-green-500 text-white border-green-500 shadow-md'
+                        : tab.key === 'pending'
+                        ? 'bg-orange-500 text-white border-orange-500 shadow-md'
+                        : 'bg-[#10b981] text-white border-[#10b981] shadow-sm'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-[#10b981] hover:text-[#10b981]'
                   }`}
                 >
                   {tab.label}
-                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${filterStatus === tab.key ? 'bg-white/20' : 'bg-gray-100'}`}>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${paymentFilter === tab.key ? 'bg-white/20' : 'bg-gray-100'}`}>
                     {tab.count}
                   </span>
                 </button>
