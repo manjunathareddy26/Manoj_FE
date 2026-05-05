@@ -147,6 +147,22 @@ const FarmerHome = ({ user }) => {
         </div>
       </div>
 
+      {/* UPI Payment Collection Notice */}
+      <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 flex items-start gap-4">
+        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <AlertCircle size={18} className="text-blue-600" />
+        </div>
+        <div className="flex-1">
+          <p className="font-bold text-blue-900 text-sm">💰 Collect UPI Payments from Admin</p>
+          <p className="text-sm text-blue-800 mt-1">For orders paid via UPI, please collect the money from Admin by showing Order IDs</p>
+          <div className="mt-3 space-y-1.5 text-sm text-blue-800">
+            <p className="flex items-center gap-2"><span className="font-bold">📞 Call:</span> <span className="font-mono font-bold text-blue-900">8464001960</span></p>
+            <p className="flex items-center gap-2"><span className="font-bold">📧 Email:</span> <span className="font-mono text-blue-900">farmbridge@gmail.com</span></p>
+            <p className="flex items-center gap-2"><span className="font-bold">📍 Visit:</span> <span className="font-bold">Gudur</span></p>
+          </div>
+        </div>
+      </div>
+
       {/* Recent Orders */}
       <div>
         <div className="flex items-center justify-between mb-3">
