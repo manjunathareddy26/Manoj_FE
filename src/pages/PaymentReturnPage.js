@@ -101,19 +101,31 @@ const PaymentReturnPage = () => {
             <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-5">
               <AlertCircle size={48} className="text-yellow-600" />
             </div>
-            <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Payment Status: Pending</h1>
+            <h1 className="text-2xl font-bold text-[#0F172A] mb-2">⏳ Payment Pending</h1>
             <p className="text-[#64748B] mb-2">
               We're still confirming your payment for order <span className="font-semibold">#{appOrderId}</span>.
             </p>
-            <p className="text-sm text-[#64748B] mb-6">
-              Your payment has been submitted. It may take a moment to process.
+            <p className="text-sm text-[#64748B] mb-4">
+              Your payment has been submitted. It may take a moment to process. Try checking the status again.
             </p>
+            
+            {/* Retry Button */}
             <button
-              onClick={() => verifyPaymentStatus()}
-              className="w-full px-6 py-2 mb-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all"
+              onClick={() => {
+                console.log('[PaymentReturn] User clicked Check Payment Status manually');
+                verifyPaymentStatus(0); // Reset retry count
+              }}
+              className="w-full px-6 py-3 mb-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all"
             >
-              Check Payment Status
+              ✓ Check Payment Status Again
             </button>
+
+            {/* Help Text */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-xs text-blue-700">
+                <strong>💡 Tip:</strong> If payment takes longer than expected, you can still go to Orders and check the status there. The payment may be confirmed in the background.
+              </p>
+            </div>
           </>
         )}
 
@@ -126,7 +138,10 @@ const PaymentReturnPage = () => {
         </div>
 
         <button
-          onClick={() => navigate('/orders?refresh=1')}
+          onClick={() => {
+            console.log('[PaymentReturn] User navigated to orders from PaymentReturnPage');
+            navigate('/orders?refresh=1');
+          }}
           className="mt-6 w-full px-6 py-3 bg-gradient-to-r from-[#10b981] to-[#059669] text-white font-bold rounded-xl hover:shadow-lg transition-all"
         >
           Go to Orders Now
