@@ -75,7 +75,10 @@ const PaymentPage = () => {
 
       const checkoutUrl = `${baseUrl}?session_id=${payment_session_id}`;
       
-      console.log('[Payment] Redirecting to Cashfree checkout...');
+      console.log('[Payment] Environment:', env);
+      console.log('[Payment] Base URL:', baseUrl);
+      console.log('[Payment] Session ID:', payment_session_id.substring(0, 50) + '...');
+      console.log('[Payment] Checkout URL:', checkoutUrl);
 
       // ✅ FIX: No setTimeout — redirect immediately to avoid session expiry
       window.location.href = checkoutUrl;
