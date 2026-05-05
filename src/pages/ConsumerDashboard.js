@@ -5,7 +5,7 @@ import {
   ShoppingBag, ShoppingCart, Package, CheckCircle, XCircle, Truck,
   Search, LogOut, User, Menu, X, Trash2, Eye, MapPin, CreditCard,
   Calendar, AlertCircle, RefreshCw, ChevronRight, Clock, Star,
-  Leaf, Bell,
+  Leaf,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../context/authStore';
