@@ -2,7 +2,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { CreditCard, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { load } from '@cashfreepayments/cashfree-js';
 import { orderService, paymentService } from '../services/index';
 
 const PaymentPage = () => {
@@ -39,16 +38,11 @@ const PaymentPage = () => {
   }, [orderId]);
 
   const handleCashfreePayment = async () => {
-    if (!orderData) {
-      toast.error('Order details not loaded');
-      return;
-    }
-
+    if (!orderData) { toast.error('Order details not loaded'); return; }
     setProcessing(true);
 
     try {
-      console.log('[Payment] Requesting Cashfree session for order:', orderData.id);
-      
+      // Step 1: Create order on backend → get payment_session_id
       const res = await paymentService.createCashfreeOrder({
         amount:        Number(orderData.total_amount),
         appOrderId:    orderData.id,
@@ -59,48 +53,37 @@ const PaymentPage = () => {
 
       const { cf_order_id, payment_session_id } = res.data;
 
-      console.log('[Payment] Got session ID length:', payment_session_id?.length);
-
-      if (!payment_session_id || typeof payment_session_id !== 'string' || !payment_session_id.trim()) {
-        throw new Error('Invalid payment session received from server');
+      if (!payment_session_id) {
+        throw new Error('No payment session received from server');
       }
 
-      // Store cf_order_id for verification on return page (fallback)
+      // Save cf_order_id so return page can verify
       sessionStorage.setItem('cf_order_id_' + orderData.id, cf_order_id);
 
-      // Initialize Cashfree SDK and use it properly
-      const env = process.env.REACT_APP_CASHFREE_ENV || 'production';
-      const cashfreeConfig = {
-        mode: env === 'production' ? 'production' : 'sandbox',
-      };
+      // Step 2: Use Cashfree JS SDK (already loaded via <script> in index.html)
+      if (!window.Cashfree) {
+        throw new Error('Cashfree SDK not loaded. Please refresh and try again.');
+      }
 
-      console.log('[Payment] Initializing Cashfree SDK with mode:', cashfreeConfig.mode);
+      const cashfree = window.Cashfree({
+        mode: process.env.REACT_APP_CASHFREE_ENV === 'production' ? 'production' : 'sandbox',
+      });
 
-      const cashfree = await load(cashfreeConfig);
-
-      console.log('[Payment] SDK loaded, initiating checkout with session ID:', payment_session_id.substring(0, 50) + '...');
-
-      // Use SDK's checkout method instead of direct redirect
-      const checkoutResult = await cashfree.checkout({
+      // Step 3: Launch checkout — redirects to Cashfree page, then back to return_url
+      await cashfree.checkout({
         paymentSessionId: payment_session_id,
-        redirectTarget: '_self', // Stay in same window/tab
+        redirectTarget:   '_self',
       });
 
-      console.log('[Payment] Checkout result:', checkoutResult);
-
+      // Note: code below this line won't run — page redirects away
     } catch (err) {
-      console.error('[Payment] Error:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-      });
-      
-      const errorMsg = err.response?.data?.cf_error_message 
-        || err.response?.data?.message 
-        || err.message 
-        || 'Payment failed. Please try again.';
-      
-      toast.error(errorMsg);
+      console.error('[Payment] Error:', err);
+      toast.error(
+        err.response?.data?.cf_error_message ||
+        err.response?.data?.message ||
+        err.message ||
+        'Payment failed. Please try again.'
+      );
       setProcessing(false);
     }
   };
@@ -112,7 +95,6 @@ const PaymentPage = () => {
       toast.success('Order confirmed! You will pay on delivery.');
       setTimeout(() => navigate('/orders'), 2000);
     } catch (err) {
-      console.error('COD error:', err);
       toast.error('Failed to confirm order. Please try again.');
       setProcessing(false);
     }
@@ -138,7 +120,7 @@ const PaymentPage = () => {
           <p className="text-[#64748B] mb-6">{error || 'Unable to load order details'}</p>
           <button
             onClick={() => navigate('/consumer')}
-            className="w-full px-6 py-3 bg-gradient-to-r from-[#10b981] to-[#059669] text-white font-bold rounded-xl hover:shadow-lg transition-all"
+            className="w-full px-6 py-3 bg-gradient-to-r from-[#10b981] to-[#059669] text-white font-bold rounded-xl"
           >
             Return to Marketplace
           </button>
@@ -150,23 +132,21 @@ const PaymentPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F8FAFC] to-[#E8EFF7] py-8">
       <div className="max-w-2xl mx-auto px-4">
-        {/* Header */}
         <button
           onClick={() => navigate('/cart')}
           className="flex items-center gap-2 text-[#10b981] font-semibold mb-8 hover:text-[#059669]"
         >
-          Back to Cart
+          ← Back to Cart
         </button>
 
-        {/* Main Card */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* Payment Header */}
+          {/* Header */}
           <div className="bg-gradient-to-r from-[#10b981] to-[#059669] text-white p-8">
             <div className="flex items-center gap-3 mb-4">
               <CreditCard size={32} />
               <h1 className="text-3xl font-bold">Payment</h1>
             </div>
-            <p className="text-[#10b98180]">Complete your order by making a payment</p>
+            <p className="opacity-80">Complete your order by making a payment</p>
           </div>
 
           {/* Order Summary */}
@@ -182,7 +162,7 @@ const PaymentPage = () => {
             <div className="mb-6">
               <h3 className="font-semibold text-[#0F172A] mb-4">Items</h3>
               <div className="space-y-3">
-                {orderData.items && orderData.items.map((item, index) => (
+                {orderData.items?.map((item, index) => (
                   <div key={index} className="flex justify-between items-center p-3 bg-[#F8FAFC] rounded-lg">
                     <div>
                       <p className="font-semibold text-[#0F172A]">{item.name}</p>
@@ -191,24 +171,24 @@ const PaymentPage = () => {
                       </p>
                     </div>
                     <p className="font-bold text-[#10b981]">
-                      {(item.price * (item.quantityType === 'kg' ? item.quantity / item.weight_per_bag : item.quantity)).toLocaleString()}
+                      ₹{(item.price * item.quantity).toLocaleString()}
                     </p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Delivery Address */}
+            {/* Address */}
             <div className="mb-6">
               <h3 className="font-semibold text-[#0F172A] mb-3">Delivery Address</h3>
-              <p className="text-[#64748B] leading-relaxed">{orderData.delivery_address}</p>
+              <p className="text-[#64748B]">{orderData.delivery_address}</p>
             </div>
 
             {/* Price Breakdown */}
             <div className="space-y-3 pt-6 border-t border-[#E2E8F0]">
               <div className="flex justify-between text-[#64748B]">
                 <span>Subtotal</span>
-                <span>{(orderData.total_amount * 0.95).toLocaleString()}</span>
+                <span>₹{(orderData.total_amount * 0.95).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-[#64748B]">
                 <span>Delivery</span>
@@ -216,11 +196,11 @@ const PaymentPage = () => {
               </div>
               <div className="flex justify-between text-[#64748B]">
                 <span>Tax & Charges</span>
-                <span>{(orderData.total_amount * 0.05).toLocaleString()}</span>
+                <span>₹{(orderData.total_amount * 0.05).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-lg font-bold text-[#0F172A] pt-3 border-t border-[#E2E8F0]">
                 <span>Total Amount</span>
-                <span className="text-[#10b981]">{Number(orderData.total_amount).toLocaleString()}</span>
+                <span className="text-[#10b981]">₹{Number(orderData.total_amount).toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -228,16 +208,16 @@ const PaymentPage = () => {
           {/* Payment Methods */}
           <div className="p-8">
             <h2 className="text-xl font-bold text-[#0F172A] mb-6">Choose Payment Method</h2>
-
             <div className="space-y-4">
-              {/* Cashfree Online Payment */}
+
+              {/* Online Payment */}
               <button
                 onClick={handleCashfreePayment}
                 disabled={processing}
                 className="w-full p-6 border-2 border-[#E2E8F0] rounded-xl hover:border-[#10b981] hover:bg-[#10b98105] transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-[#10b98120] rounded-lg flex items-center justify-center group-hover:bg-[#10b98140] transition-colors">
+                  <div className="w-12 h-12 bg-[#10b98120] rounded-lg flex items-center justify-center">
                     <CreditCard size={24} className="text-[#10b981]" />
                   </div>
                   <div className="flex-1 text-left">
@@ -245,20 +225,20 @@ const PaymentPage = () => {
                     <p className="text-sm text-[#64748B]">Pay securely using Cashfree</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-[#10b981]">â‚¹{Number(orderData.total_amount).toLocaleString()}</p>
+                    <p className="font-bold text-[#10b981]">₹{Number(orderData.total_amount).toLocaleString()}</p>
                     {processing && <Loader size={20} className="text-[#10b981] animate-spin ml-auto mt-2" />}
                   </div>
                 </div>
               </button>
 
-              {/* Cash on Delivery */}
+              {/* COD */}
               <button
                 onClick={handleCODPayment}
                 disabled={processing}
                 className="w-full p-6 border-2 border-[#E2E8F0] rounded-xl hover:border-[#059669] hover:bg-[#05966905] transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-[#05966920] rounded-lg flex items-center justify-center group-hover:bg-[#05966940] transition-colors">
+                  <div className="w-12 h-12 bg-[#05966920] rounded-lg flex items-center justify-center">
                     <CheckCircle size={24} className="text-[#059669]" />
                   </div>
                   <div className="flex-1 text-left">
@@ -267,16 +247,15 @@ const PaymentPage = () => {
                   </div>
                 </div>
               </button>
+
             </div>
           </div>
 
-          {/* Security Info */}
+          {/* Security */}
           <div className="bg-[#10b98110] border-t-2 border-[#10b981] p-6 text-center">
-            <p className="text-sm text-[#10b981] font-semibold">
-              Your transaction is secure and encrypted
-            </p>
+            <p className="text-sm text-[#10b981] font-semibold">Your transaction is secure and encrypted</p>
             <p className="text-xs text-[#64748B] mt-2">
-              Payments are processed securely by Cashfree Payments. Your data is protected with industry-standard encryption.
+              Payments are processed securely by Cashfree Payments.
             </p>
           </div>
         </div>
