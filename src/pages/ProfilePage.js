@@ -1,5 +1,4 @@
-import React, { useState, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useState, useRef, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Edit2, Save, X, Camera, Loader2, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
@@ -7,13 +6,25 @@ import useAuthStore from '../context/authStore';
 import { authService } from '../services';
 
 const ProfilePage = () => {
-  const { t } = useTranslation();
   const { user, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(user?.profile_image || null);
   const [avatarBase64, setAvatarBase64] = useState(null); // new image selected but not yet saved
   const fileInputRef = useRef(null);
+
+  // Sync form when user loads from API after page refresh
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || user.whatsapp || '',
+        location: user.address || user.place || '',
+      });
+      setAvatarPreview(user.profile_image || null);
+    }
+  }, [user]);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -96,6 +107,33 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F0FDF4] via-[#F8FAFC] to-[#EFF6FF]">
       <Navbar />
+
+      {/* Loading skeleton while user is being fetched after refresh */}
+      {!user ? (
+        <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+          <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+            <div className="h-28 bg-gradient-to-r from-[#10b981] to-[#059669]" />
+            <div className="px-8 pb-6">
+              <div className="flex items-end justify-between -mt-14 mb-4">
+                <div className="w-24 h-24 rounded-full border-4 border-white bg-gray-200 animate-pulse" />
+              </div>
+              <div className="h-6 bg-gray-200 rounded-lg animate-pulse w-48 mb-2" />
+              <div className="h-4 bg-gray-100 rounded-lg animate-pulse w-24" />
+            </div>
+          </div>
+          <div className="bg-white rounded-3xl shadow-xl p-8 space-y-4">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="flex items-center gap-4 p-4 bg-[#F8FAFC] rounded-xl">
+                <div className="w-10 h-10 bg-gray-200 rounded-xl animate-pulse" />
+                <div className="flex-1">
+                  <div className="h-3 bg-gray-200 rounded animate-pulse w-20 mb-2" />
+                  <div className="h-4 bg-gray-100 rounded animate-pulse w-40" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
 
       <div className="max-w-2xl mx-auto px-4 py-10">
         {/* Header Card */}
@@ -276,6 +314,8 @@ const ProfilePage = () => {
           )}
         </div>
       </div>
+
+      )} {/* end !user ternary */}
     </div>
   );
 };
