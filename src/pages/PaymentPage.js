@@ -101,7 +101,13 @@ const PaymentPage = () => {
         response: err.response?.data,
         status: err.response?.status,
       });
-      toast.error(err.response?.data?.message || err.message || 'Payment failed. Please try again.');
+      
+      const errorMsg = err.response?.data?.cf_error_message 
+        || err.response?.data?.message 
+        || err.message 
+        || 'Payment failed. Please try again.';
+      
+      toast.error(errorMsg);
       setProcessing(false);
     }
   };
