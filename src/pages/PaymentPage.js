@@ -65,14 +65,14 @@ const PaymentPage = () => {
         throw new Error('Cashfree SDK not loaded. Please refresh and try again.');
       }
 
-      const cashfree = window.Cashfree({
+      const cashfree = new window.Cashfree({
         mode: process.env.REACT_APP_CASHFREE_ENV === 'production' ? 'production' : 'sandbox',
       });
 
       // Step 3: Launch checkout — redirects to Cashfree page, then back to return_url
       await cashfree.checkout({
         paymentSessionId: payment_session_id,
-        redirectTarget:   '_self',
+        redirectTarget: '_self',
       });
 
       // Note: code below this line won't run — page redirects away
