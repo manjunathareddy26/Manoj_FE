@@ -1,8 +1,97 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, MapPin, CreditCard, Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Package, Eye, MapPin, CreditCard, Calendar,  AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { orderService } from '../services/index';
+
+// ── Order Tracking ────────────────────────────────────────────────────────────
+
+const TRACKING_STEPS = [
+  { key: 'booked',   label: 'Booked',   shortLabel: 'Book', icon: '🛒' },
+  { key: 'payment',  label: 'Payment',  shortLabel: 'Pay',  icon: '💳' },
+  { key: 'accepted', label: 'Accepted', shortLabel: 'Acpt', icon: '✅' },
+  { key: 'packed',   label: 'Packed',   shortLabel: 'Pack', icon: '📦' },
+  { key: 'shipped',  label: 'Shipped',  shortLabel: 'Ship', icon: '🚚' },
+  { key: 'received', label: 'Received', shortLabel: 'Rcvd', icon: '🏠' },
+];
+
+const getTrackingStep = (status, paymentStatus) => {
+  if (status === 'delivered') return 5;
+  if (status === 'shipped')   return 4;
+  if (status === 'packed')    return 3;
+  if (status === 'confirmed' || status === 'accepted') return 2;
+  if (paymentStatus === 'paid') return 1;
+  return 0;
+};
+
+const OrderTracker = ({ order, compact = false }) => {
+  if (order.status === 'rejected') return null;
+  const currentStep = getTrackingStep(order.status, order.payment_status);
+
+  return (
+    <div className="w-full">
+      <div className="flex items-center w-full">
+        {TRACKING_STEPS.map((step, i) => {
+          const done   = i <= currentStep;
+          const active = i === currentStep;
+          const isLast = i === TRACKING_STEPS.length - 1;
+          return (
+            <React.Fragment key={step.key}>
+              <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                <div
+                  className={`
+                    ${compact ? 'w-7 h-7 text-xs' : 'w-11 h-11 text-sm'}
+                    rounded-full flex items-center justify-center font-bold transition-all
+                    ${active
+                      ? 'bg-[#10b981] text-white ring-4 ring-[#d1fae5] shadow-md scale-110'
+                      : done
+                      ? 'bg-[#10b981] text-white'
+                      : 'bg-gray-100 text-gray-400'}
+                  `}
+                >
+                  {done && !active ? '✓' : step.icon}
+                </div>
+                <span
+                  className={`${
+                    compact ? 'text-[9px]' : 'text-[11px]'
+                  } font-semibold text-center leading-tight ${
+                    active ? 'text-[#059669]' : done ? 'text-[#10b981]' : 'text-gray-300'
+                  }`}
+                >
+                  {compact ? step.shortLabel : step.label}
+                </span>
+              </div>
+              {!isLast && (
+                <div
+                  className={`flex-1 ${
+                    compact ? 'h-0.5 mb-4' : 'h-1 mb-5'
+                  } mx-1 rounded-full transition-all ${
+                    i < currentStep ? 'bg-[#10b981]' : 'bg-gray-200'
+                  }`}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+      {!compact && (
+        <div className="text-center mt-4">
+          <span
+            className={`text-xs font-bold px-4 py-1.5 rounded-full ${
+              order.status === 'delivered'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-[#d1fae5] text-[#059669]'
+            }`}
+          >
+            {order.status === 'delivered'
+              ? '🎉 Your order has been delivered!'
+              : `Currently: ${TRACKING_STEPS[currentStep]?.label}`}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const OrdersPage = () => {
   const navigate = useNavigate();
@@ -195,6 +284,14 @@ const OrdersPage = () => {
                           </span>
                         </div>
 
+                        {/* Order Tracking Strip */}
+                        {order.status !== 'rejected' && (
+                          <div className="mb-4 p-3 bg-[#F0FDF4] rounded-xl border border-[#BBF7D0]">
+                            <p className="text-[10px] font-bold text-[#059669] uppercase tracking-wide mb-2">Order Tracking</p>
+                            <OrderTracker order={order} compact />
+                          </div>
+                        )}
+
                         {/* Items Summary */}
                         <div className="mb-4 p-3 bg-[#F1F5F9] rounded-lg">
                           <p className="text-sm font-semibold text-[#0F172A] mb-2">
@@ -280,7 +377,7 @@ const OrdersPage = () => {
       {/* Order Details Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-96 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
             {/* Close Button */}
             <button
               onClick={() => setSelectedOrder(null)}
@@ -293,20 +390,19 @@ const OrdersPage = () => {
               Order #{selectedOrder.id} Details
             </h2>
 
-            {/* Order Status Timeline */}
+            {/* Order Tracking */}
             <div className="mb-6 pb-6 border-b border-[#E2E8F0]">
-              <p className="text-sm font-semibold text-[#64748B] mb-3">Status Timeline</p>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <div className={`px-4 py-2 rounded-lg text-sm font-semibold text-center ${getStatusColor(selectedOrder.status)}`}>
-                    {getStatusLabel(selectedOrder.status)}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className={`px-4 py-2 rounded-lg text-sm font-semibold text-center border-2 ${getPaymentStatusColor(selectedOrder.payment_status || 'unpaid')}`}>
-                    {getPaymentStatusLabel(selectedOrder.payment_status || 'unpaid')}
-                  </div>
-                </div>
+              <p className="text-sm font-semibold text-[#64748B] mb-4">Order Tracking</p>
+              <div className="bg-[#F0FDF4] rounded-2xl p-5 border border-[#BBF7D0]">
+                <OrderTracker order={selectedOrder} />
+              </div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedOrder.status)}`}>
+                  {getStatusLabel(selectedOrder.status)}
+                </span>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${getPaymentStatusColor(selectedOrder.payment_status || 'unpaid')}`}>
+                  {getPaymentStatusLabel(selectedOrder.payment_status || 'unpaid')}
+                </span>
               </div>
             </div>
 

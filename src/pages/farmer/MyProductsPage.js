@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Trash2, Plus, Package } from 'lucide-react';
+import { Edit2, Trash2, Plus, Package, Leaf } from 'lucide-react';
 import { productService } from '../../services/index';
 import { toast } from 'react-toastify';
+import imgSrc from '../../utils/imgSrc';
 
 const MyProductsPage = () => {
   const navigate = useNavigate();
@@ -42,7 +43,16 @@ const MyProductsPage = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="text-[#64748B]">Loading products...</div>
+        <div className="text-center">
+          <div className="relative w-14 h-14 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-4 border-green-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-t-[#10b981] animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Leaf size={18} className="text-[#10b981]" />
+            </div>
+          </div>
+          <p className="text-[#64748B] font-semibold">Loading products...</p>
+        </div>
       </div>
     );
   }
@@ -95,13 +105,17 @@ const MyProductsPage = () => {
                   <tr key={product.id} className="border-b border-[#E2E8F0] hover:bg-[#F8FAFC] transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        {product.image && (
-                          <img
-                            src={`data:image/jpeg;base64,${product.image}`}
-                            alt={product.name}
-                            className="w-12 h-12 object-cover rounded-lg"
-                          />
-                        )}
+                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 flex items-center justify-center">
+                          {product.image ? (
+                            <img
+                              src={imgSrc(product.image)}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Package size={20} className="text-gray-400" />
+                          )}
+                        </div>
                         <div>
                           <p className="font-semibold text-[#0F172A]">{product.name}</p>
                           <p className="text-sm text-[#64748B]">ID: {product.id}</p>
@@ -149,14 +163,21 @@ const MyProductsPage = () => {
           {/* Mobile Card View */}
           <div className="md:hidden space-y-4">
             {products.map((product) => (
-              <div key={product.id} className="bg-white rounded-2xl shadow-lg p-4">
-                {product.image && (
-                  <img
-                    src={`data:image/jpeg;base64,${product.image}`}
-                    alt={product.name}
-                    className="w-full h-40 object-cover rounded-xl mb-4"
-                  />
-                )}
+              <div key={product.id} className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-100">
+                <div className="w-full h-44 overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50 relative">
+                  {product.image ? (
+                    <img
+                      src={imgSrc(product.image)}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package size={40} className="text-green-200" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
                 <h3 className="font-bold text-[#0F172A] text-lg mb-2">{product.name}</h3>
                 <div className="space-y-2 mb-4 text-sm">
                   <div className="flex justify-between">
@@ -186,11 +207,12 @@ const MyProductsPage = () => {
                   </button>
                   <button
                     onClick={() => handleDelete(product.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-500 font-semibold rounded-lg"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-500 font-semibold rounded-xl transition-colors border border-red-100"
                   >
                     <Trash2 size={18} />
                     Delete
                   </button>
+                </div>
                 </div>
               </div>
             ))}

@@ -121,12 +121,12 @@ export const orderService = {
 
 // Payments API calls
 export const paymentService = {
-  // Create Razorpay order
-  createRazorpayOrder: (amount) => api.post('/payments/razorpay/create', { amount }),
-  
-  // Verify Razorpay payment
-  verifyRazorpayPayment: (paymentData) => api.post('/payments/razorpay/verify', paymentData),
-  
+  // Create Cashfree order — returns payment_session_id
+  createCashfreeOrder: (data) => api.post('/payments/cashfree/create', data),
+
+  // Verify Cashfree payment by cf_order_id
+  verifyCashfreePayment: (data) => api.post('/payments/cashfree/verify', data),
+
   // Get payment status
   getPaymentStatus: (orderId) => api.get(`/payments/status/${orderId}`),
 };

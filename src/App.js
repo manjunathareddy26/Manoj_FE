@@ -1,5 +1,5 @@
 import React, { useEffect, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useTranslation } from 'react-i18next';
 import { ToastContainer } from 'react-toastify';
@@ -25,8 +25,13 @@ import ProductPage from './pages/ProductPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import PaymentPage from './pages/PaymentPage';
+import PaymentReturnPage from './pages/PaymentReturnPage';
 import ProfilePage from './pages/ProfilePage';
 import OrdersPage from './pages/OrdersPage';
+import HelpCenter from './pages/HelpCenter';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import ContactUs from './pages/ContactUs';
 
 // Styles
 import './styles/globals.css';
@@ -37,7 +42,12 @@ const ProtectedRoute = ({ children, role }) => {
   const token = useAuthStore((state) => state.token);
 
   if (!token) return <Navigate to="/signin" replace />;
-  if (role && user?.role !== role) return <Navigate to="/" replace />;
+
+  // If the user's actual role doesn't match the required role for this route,
+  // send them to their correct dashboard instead of a blank redirect.
+  if (role && user?.role && user.role !== role) {
+    return <Navigate to={`/${user.role}`} replace />;
+  }
 
   return children;
 };
@@ -82,6 +92,10 @@ function App() {
               <Route path="/signin" element={<SignIn />} />
               <Route path="/login" element={<Navigate to="/signin" replace />} />
               <Route path="/select-role" element={<RoleSelectionPage />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/contact" element={<ContactUs />} />
 
           {/* Farmer Routes */}
           <Route
@@ -133,6 +147,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <PaymentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/return/:appOrderId"
+            element={
+              <ProtectedRoute>
+                <PaymentReturnPage />
               </ProtectedRoute>
             }
           />

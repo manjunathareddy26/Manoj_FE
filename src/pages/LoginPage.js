@@ -47,42 +47,24 @@ const LoginPage = () => {
       
       <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
         <div className="w-full max-w-md">
-          {/* Sign In Card */}
           <div className="card shadow-2xl mb-6">
             <div className="text-center mb-8">
-              <h1 className="heading-md text-farm-500 mb-2">Sign In</h1>
-              <p className="text-gray-600">Sign in with your existing account</p>
+              <h1 className="heading-md text-farm-500 mb-2">Sign In / Sign Up</h1>
+              <p className="text-gray-600">Use your Google account to get started</p>
             </div>
 
-            <div className="flex justify-center mb-8">
+            <div className="flex justify-center mb-4">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={handleGoogleError}
                 locale={localStorage.getItem('language') || 'en'}
+                size="large"
               />
             </div>
-          </div>
 
-          {/* Sign Up Card */}
-          <div className="card shadow-lg mb-6 border-2 border-leaf-300">
-            <div className="text-center">
-              <h2 className="heading-sm text-leaf-600 mb-3">New to FarmBridge?</h2>
-              <p className="text-gray-600 text-sm mb-4">
-                Create your account using Google - it's quick and secure!
-              </p>
-              <div className="flex justify-center">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  text="signup"
-                  locale={localStorage.getItem('language') || 'en'}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center text-gray-500 text-xs">
-            <p>✅ First time? Create account | 🔄 Returning? Sign in</p>
+            <p className="text-center text-gray-500 text-xs">
+              ✅ New here? An account will be created automatically.
+            </p>
           </div>
         </div>
       </div>

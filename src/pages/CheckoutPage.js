@@ -28,7 +28,7 @@ const CheckoutPage = () => {
 
   const calculateTotal = () => {
     return items.reduce((sum, item) => {
-      return sum + (item.price * (item.quantityType === 'weight' ? item.quantity / item.weight_per_bag : item.quantity));
+      return sum + (item.price * (item.quantityType === 'kg' ? item.quantity / item.weight_per_bag : item.quantity));
     }, 0);
   };
 
@@ -311,7 +311,7 @@ const CheckoutPage = () => {
                       {item.name} ({item.quantityType === 'bags' ? `${item.quantity} bags` : `${item.quantity}kg`})
                     </span>
                     <span className="font-semibold text-[#0F172A]">
-                      ₹{(item.price * (item.quantityType === 'weight' ? item.quantity / item.weight_per_bag : item.quantity)).toLocaleString()}
+                      ₹{(item.price * (item.quantityType === 'kg' ? item.quantity / item.weight_per_bag : item.quantity)).toLocaleString()}
                     </span>
                   </div>
                 ))}

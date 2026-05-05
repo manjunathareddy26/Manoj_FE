@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import imgSrc from '../utils/imgSrc';
 import {
   ShoppingBag, ShoppingCart, Package, CheckCircle, XCircle, Truck,
   Search, LogOut, User, Menu, X, Trash2, Eye, MapPin, CreditCard,
@@ -333,7 +334,7 @@ const AddToCartModal = ({ product, onClose, onConfirm }) => {
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="relative h-40 bg-gradient-to-br from-farm-50 to-leaf-50 flex items-center justify-center overflow-hidden">
           {product.image ? (
-            <img src={`data:image/jpeg;base64,${product.image}`} alt={product.name} className="w-full h-full object-cover" />
+            <img src={imgSrc(product.image)} alt={product.name} className="w-full h-full object-cover" />
           ) : (
             <Leaf size={48} className="text-farm-300" />
           )}
@@ -343,22 +344,48 @@ const AddToCartModal = ({ product, onClose, onConfirm }) => {
         </div>
         <div className="p-6">
           <h3 className="text-xl font-bold text-gray-900 mb-1">{product.name}</h3>
-          <p className="text-farm-500 font-bold text-lg mb-4">₹{Number(product.price).toLocaleString('en-IN')} / bag</p>
+          <div className="flex items-baseline gap-3 mb-4">
+            <p className="text-farm-500 font-bold text-lg">₹{Number(product.price).toLocaleString('en-IN')} / bag</p>
+            {Number(product.weight_per_bag) > 0 && (
+              <p className="text-gray-400 text-sm">(₹{(Number(product.price) / Number(product.weight_per_bag)).toFixed(0)}/kg)</p>
+            )}
+          </div>
           <div className="flex gap-2 mb-4">
             {['bags', 'kg'].map((t) => (
-              <button key={t} onClick={() => setType(t)} className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-all ${type === t ? 'bg-farm-500 text-white border-farm-500' : 'bg-white text-gray-600 border-gray-200 hover:border-farm-300'}`}>
+              <button key={t} onClick={() => { setType(t); setQty(t === 'kg' ? (Number(product.weight_per_bag) || 1) : 1); }} className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-all ${type === t ? 'bg-farm-500 text-white border-farm-500' : 'bg-white text-gray-600 border-gray-200 hover:border-farm-300'}`}>
                 By {t === 'bags' ? 'Bags' : 'Weight (kg)'}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-3 mb-4">
-            <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-10 h-10 rounded-xl bg-gray-100 font-bold text-gray-700 hover:bg-farm-100 hover:text-farm-600 transition-colors text-lg flex items-center justify-center">−</button>
-            <input type="number" value={qty} min={1} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} className="flex-1 text-center text-xl font-bold border-2 border-gray-200 rounded-xl py-2 focus:border-farm-400 focus:outline-none" />
-            <button onClick={() => setQty(qty + 1)} className="w-10 h-10 rounded-xl bg-gray-100 font-bold text-gray-700 hover:bg-farm-100 hover:text-farm-600 transition-colors text-lg flex items-center justify-center">+</button>
+            <button
+              onClick={() => setQty(Math.max(type === 'kg' ? (Number(product.weight_per_bag) || 1) : 1, qty - (type === 'kg' ? (Number(product.weight_per_bag) || 1) : 1)))}
+              className="w-10 h-10 rounded-xl bg-gray-100 font-bold text-gray-700 hover:bg-farm-100 hover:text-farm-600 transition-colors text-lg flex items-center justify-center"
+            >−</button>
+            <input
+              type="number"
+              value={qty}
+              min={type === 'kg' ? (Number(product.weight_per_bag) || 1) : 1}
+              step={type === 'kg' ? (Number(product.weight_per_bag) || 1) : 1}
+              onChange={(e) => setQty(Math.max(type === 'kg' ? (Number(product.weight_per_bag) || 1) : 1, Number(e.target.value) || 1))}
+              className="flex-1 text-center text-xl font-bold border-2 border-gray-200 rounded-xl py-2 focus:border-farm-400 focus:outline-none"
+            />
+            <button
+              onClick={() => setQty(qty + (type === 'kg' ? (Number(product.weight_per_bag) || 1) : 1))}
+              className="w-10 h-10 rounded-xl bg-gray-100 font-bold text-gray-700 hover:bg-farm-100 hover:text-farm-600 transition-colors text-lg flex items-center justify-center"
+            >+</button>
           </div>
           <div className="bg-farm-50 rounded-xl p-3 mb-5 text-center">
-            <p className="text-xs text-gray-500">Estimated Total</p>
-            <p className="text-xl font-bold text-farm-500">₹{(Number(product.price) * qty).toLocaleString('en-IN')}</p>
+            <p className="text-xs text-gray-500">
+              {type === 'kg' ? `${qty}kg ≈ ${(qty / (Number(product.weight_per_bag) || 1)).toFixed(1)} bags` : `${qty} ${qty === 1 ? 'bag' : 'bags'}`}
+            </p>
+            <p className="text-xl font-bold text-farm-500">
+              ₹{(type === 'kg'
+                ? (Number(product.price) / (Number(product.weight_per_bag) || 1)) * qty
+                : Number(product.price) * qty
+              ).toLocaleString('en-IN')}
+            </p>
+            <p className="text-xs text-gray-400">Estimated Total</p>
           </div>
           <button onClick={() => onConfirm(qty, type)} className="w-full py-3 bg-gradient-to-r from-farm-500 to-farm-600 text-white font-bold rounded-xl hover:shadow-lg shadow-farm-500/25 transition-all">
             Add to Cart
@@ -624,10 +651,17 @@ const ConsumerDashboard = () => {
               </div>
 
               {productsLoading ? (
-                <div className="flex items-center justify-center py-20">
+                <div className="flex items-center justify-center py-24">
                   <div className="text-center">
-                    <div className="animate-spin w-10 h-10 border-4 border-farm-200 border-t-farm-500 rounded-full mx-auto mb-4" />
-                    <p className="text-gray-500">Loading fresh products...</p>
+                    <div className="relative w-16 h-16 mx-auto mb-5">
+                      <div className="absolute inset-0 rounded-full border-4 border-farm-100" />
+                      <div className="absolute inset-0 rounded-full border-4 border-t-farm-500 animate-spin" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Leaf size={20} className="text-farm-400" />
+                      </div>
+                    </div>
+                    <p className="text-gray-600 font-semibold">Loading fresh products...</p>
+                    <p className="text-gray-400 text-sm mt-1">Fetching from farms near you</p>
                   </div>
                 </div>
               ) : products.length === 0 ? (
@@ -638,7 +672,7 @@ const ConsumerDashboard = () => {
                     <div key={product.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden group">
                       <div className="relative h-44 bg-gradient-to-br from-farm-50 to-leaf-50 overflow-hidden">
                         {product.image ? (
-                          <img src={`data:image/jpeg;base64,${product.image}`} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <img src={imgSrc(product.image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center"><Leaf size={48} className="text-farm-200" /></div>
                         )}
@@ -699,7 +733,7 @@ const ConsumerDashboard = () => {
                       <div key={item.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
                         <div className="w-16 h-16 bg-farm-50 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
                           {item.image ? (
-                            <img src={`data:image/jpeg;base64,${item.image}`} alt={item.name} className="w-full h-full object-cover" />
+                            <img src={imgSrc(item.image)} alt={item.name} className="w-full h-full object-cover" />
                           ) : (
                             <Leaf size={24} className="text-farm-300" />
                           )}

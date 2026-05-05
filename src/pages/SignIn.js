@@ -16,23 +16,34 @@ const SignIn = () => {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setError('');
-    
+
     try {
-      // Send token with role information
       const response = await authService.googleLogin(
         credentialResponse.credential,
         selectedRole
       );
-      
+
       if (response.data.token && response.data.user) {
+        const actualRole = response.data.user.role;
+
+        // ── Role mismatch guard ──────────────────────────────────────────────
+        if (actualRole && actualRole !== selectedRole) {
+          const actual   = actualRole.charAt(0).toUpperCase() + actualRole.slice(1);
+          const selected = selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1);
+          const msg = `⚠️ This account is registered as a ${actual}, not a ${selected}. Please go back and choose "${actual}" to sign in.`;
+          setError(msg);
+          toast.error(msg, { autoClose: 6000 });
+          // Do NOT store token — reject access to wrong portal
+          return;
+        }
+
         localStorage.setItem('token', response.data.token);
         setToken(response.data.token);
         setUser(response.data.user);
-        
-        toast.success(`Welcome back, ${response.data.user.name}!`);
-        
-        // Redirect based on role
-        navigate(`/${selectedRole}`);
+
+        const roleLabel = actualRole === 'farmer' ? 'Farmer' : 'Consumer';
+        toast.success(`✅ Welcome back! Entering ${roleLabel} portal...`);
+        navigate(`/${actualRole}`);
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || 'Sign in failed';
@@ -201,9 +212,8 @@ const SignIn = () => {
                       <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         onError={handleGoogleError}
-                        text="signin"
+                        text="signin_with"
                         size="large"
-                        width="100%"
                       />
                     </div>
                   </div>

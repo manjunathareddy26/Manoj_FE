@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CreditCard, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { orderService } from '../services/index';
+import { orderService, paymentService } from '../services/index';
 
 const PaymentPage = () => {
   const { orderId } = useParams();
@@ -37,7 +37,7 @@ const PaymentPage = () => {
     fetchOrderDetails();
   }, [orderId]);
 
-  const handleRazorpayPayment = async () => {
+  const handleCashfreePayment = async () => {
     if (!orderData) {
       toast.error('Order details not loaded');
       return;
@@ -46,57 +46,36 @@ const PaymentPage = () => {
     setProcessing(true);
 
     try {
-      // Check if Razorpay is loaded
-      if (!window.Razorpay) {
-        throw new Error('Razorpay payment gateway is not loaded. Please refresh the page.');
+      // Step 1: Create Cashfree order on backend
+      const res = await paymentService.createCashfreeOrder({
+        amount:        Number(orderData.total_amount),
+        appOrderId:    orderData.id,
+        customerName:  orderData.customer_name  || 'Customer',
+        customerEmail: orderData.customer_email || 'customer@farmbridgemarket.com',
+        customerPhone: orderData.customer_phone || '9999999999',
+      });
+
+      const { cf_order_id, payment_session_id } = res.data;
+
+      if (!payment_session_id) {
+        throw new Error('Payment session could not be created. Please try again.');
       }
 
-      // Razorpay payment options
-      const options = {
-        key: 'rzp_test_1ufvdVLPgPWzc5',
-        amount: Math.round(orderData.total_amount * 100), // Convert to paise
-        currency: 'INR',
-        name: 'FarmBridge Marketplace',
-        description: `Order #${orderData.id} - Farm Fresh Products`,
-        order_id: orderData.id,
-        handler: async (response) => {
-          try {
-            // Verify payment with backend
-              await orderService.updatePaymentStatus(orderData.id, 'paid');
-            // Redirect to orders page after 2 seconds
-            setTimeout(() => {
-              navigate('/orders');
-            }, 2000);
-          } catch (verifyError) {
-            console.error('Payment verification error:', verifyError);
-            toast.error('Payment verification failed: ' + (verifyError.response?.data?.message || verifyError.message));
-            setProcessing(false);
-          }
-        },
-        prefill: {
-          name: orderData.customer_name || 'Customer',
-          email: orderData.customer_email || '',
-          contact: orderData.customer_phone || '',
-        },
-        notes: {
-          orderId: orderData.id,
-          address: orderData.delivery_address,
-        },
-        theme: {
-          color: '#10b981',
-        },
-        timeout: 900, // 15 minutes
-        onClose: () => {
-          setProcessing(false);
-          toast.warning('Payment was cancelled. Please try again.');
-        },
-      };
+      // Store cf_order_id for verification on the return page
+      sessionStorage.setItem('cf_order_id_' + orderData.id, cf_order_id);
 
-      const razorpayInstance = new window.Razorpay(options);
-      razorpayInstance.open();
+      // Skip the Cashfree JS SDK (requires domain whitelisting).
+      // Redirect directly to Cashfree's hosted checkout URL — works on localhost.
+      const env = process.env.REACT_APP_CASHFREE_ENV || 'production';
+      const baseUrl = env === 'production'
+        ? 'https://payments.cashfree.com/order'
+        : 'https://sandbox.cashfreepayments.com/order';
+      window.location.href = `${baseUrl}/#${payment_session_id}`;
+      // Browser navigates away — execution stops here
+
     } catch (err) {
-      console.error('Payment error:', err);
-      toast.error(err.message || 'Payment initialization failed. Please try again.');
+      console.error('Cashfree payment error:', err);
+      toast.error(err.response?.data?.message || err.message || 'Payment failed. Please try again.');
       setProcessing(false);
     }
   };
@@ -104,14 +83,9 @@ const PaymentPage = () => {
   const handleCODPayment = async () => {
     try {
       setProcessing(true);
-      // Update order to mark COD as selected
       await orderService.updatePaymentStatus(orderData.id, 'pending_payment');
-      
-      toast.success('✅ Order confirmed! You will pay on delivery.');
-      
-      setTimeout(() => {
-        navigate('/orders');
-      }, 2000);
+      toast.success('Order confirmed! You will pay on delivery.');
+      setTimeout(() => navigate('/orders'), 2000);
     } catch (err) {
       console.error('COD error:', err);
       toast.error('Failed to confirm order. Please try again.');
@@ -156,7 +130,7 @@ const PaymentPage = () => {
           onClick={() => navigate('/cart')}
           className="flex items-center gap-2 text-[#10b981] font-semibold mb-8 hover:text-[#059669]"
         >
-          ← Back to Cart
+          Back to Cart
         </button>
 
         {/* Main Card */}
@@ -174,7 +148,6 @@ const PaymentPage = () => {
           <div className="p-8 border-b border-[#E2E8F0]">
             <h2 className="text-xl font-bold text-[#0F172A] mb-6">Order Summary</h2>
 
-            {/* Order ID */}
             <div className="bg-[#F1F5F9] rounded-lg p-4 mb-6">
               <p className="text-sm text-[#64748B]">Order ID</p>
               <p className="text-lg font-bold text-[#0F172A]">#{orderData.id}</p>
@@ -193,7 +166,7 @@ const PaymentPage = () => {
                       </p>
                     </div>
                     <p className="font-bold text-[#10b981]">
-                      ₹{(item.price * (item.quantityType === 'weight' ? item.quantity / item.weight_per_bag : item.quantity)).toLocaleString()}
+                      {(item.price * (item.quantityType === 'kg' ? item.quantity / item.weight_per_bag : item.quantity)).toLocaleString()}
                     </p>
                   </div>
                 ))}
@@ -210,7 +183,7 @@ const PaymentPage = () => {
             <div className="space-y-3 pt-6 border-t border-[#E2E8F0]">
               <div className="flex justify-between text-[#64748B]">
                 <span>Subtotal</span>
-                <span>₹{(orderData.total_amount * 0.95).toLocaleString()}</span>
+                <span>{(orderData.total_amount * 0.95).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-[#64748B]">
                 <span>Delivery</span>
@@ -218,11 +191,11 @@ const PaymentPage = () => {
               </div>
               <div className="flex justify-between text-[#64748B]">
                 <span>Tax & Charges</span>
-                <span>₹{(orderData.total_amount * 0.05).toLocaleString()}</span>
+                <span>{(orderData.total_amount * 0.05).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-lg font-bold text-[#0F172A] pt-3 border-t border-[#E2E8F0]">
                 <span>Total Amount</span>
-                <span className="text-[#10b981]">₹{orderData.total_amount.toLocaleString()}</span>
+                <span className="text-[#10b981]">{Number(orderData.total_amount).toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -232,9 +205,9 @@ const PaymentPage = () => {
             <h2 className="text-xl font-bold text-[#0F172A] mb-6">Choose Payment Method</h2>
 
             <div className="space-y-4">
-              {/* UPI Payment */}
+              {/* Cashfree Online Payment */}
               <button
-                onClick={handleRazorpayPayment}
+                onClick={handleCashfreePayment}
                 disabled={processing}
                 className="w-full p-6 border-2 border-[#E2E8F0] rounded-xl hover:border-[#10b981] hover:bg-[#10b98105] transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -243,11 +216,11 @@ const PaymentPage = () => {
                     <CreditCard size={24} className="text-[#10b981]" />
                   </div>
                   <div className="flex-1 text-left">
-                    <h3 className="font-bold text-[#0F172A]">UPI / Debit Card / Credit Card</h3>
-                    <p className="text-sm text-[#64748B]">Pay securely using Razorpay</p>
+                    <h3 className="font-bold text-[#0F172A]">UPI / Debit Card / Credit Card / Net Banking</h3>
+                    <p className="text-sm text-[#64748B]">Pay securely using Cashfree</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-[#10b981]">₹{orderData.total_amount.toLocaleString()}</p>
+                    <p className="font-bold text-[#10b981]">â‚¹{Number(orderData.total_amount).toLocaleString()}</p>
                     {processing && <Loader size={20} className="text-[#10b981] animate-spin ml-auto mt-2" />}
                   </div>
                 </div>
@@ -275,15 +248,14 @@ const PaymentPage = () => {
           {/* Security Info */}
           <div className="bg-[#10b98110] border-t-2 border-[#10b981] p-6 text-center">
             <p className="text-sm text-[#10b981] font-semibold">
-              🔒 Your transaction is secure and encrypted
+              Your transaction is secure and encrypted
             </p>
             <p className="text-xs text-[#64748B] mt-2">
-              Payments are processed securely by Razorpay. Your data is protected with industry-standard encryption.
+              Payments are processed securely by Cashfree Payments. Your data is protected with industry-standard encryption.
             </p>
           </div>
         </div>
 
-        {/* Help Text */}
         <div className="mt-8 bg-white rounded-lg p-6 text-center text-sm text-[#64748B]">
           <p>Need help? Contact us at <span className="font-semibold text-[#0F172A]">support@farmbridgemarketplace.com</span></p>
         </div>
@@ -293,3 +265,5 @@ const PaymentPage = () => {
 };
 
 export default PaymentPage;
+
+

@@ -18,23 +18,34 @@ const SignUp = () => {
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
     setError('');
-    
+
     try {
-      // Send token with role information
       const response = await authService.googleLogin(
         credentialResponse.credential,
         selectedRole
       );
-      
+
       if (response.data.token && response.data.user) {
+        const actualRole = response.data.user.role;
+
+        // ── Role mismatch guard ──────────────────────────────────────────────
+        if (actualRole && actualRole !== selectedRole) {
+          const actual   = actualRole.charAt(0).toUpperCase() + actualRole.slice(1);
+          const selected = selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1);
+          const msg = `⚠️ This Google account is already registered as a ${actual}, not a ${selected}. Please go back and choose "${actual}", or use a different Google account to sign up as a ${selected}.`;
+          setError(msg);
+          toast.error(msg, { autoClose: 7000 });
+          setLoading(false);
+          return;
+        }
+
         localStorage.setItem('token', response.data.token);
         setToken(response.data.token);
         setUser(response.data.user);
-        
-        toast.success(`Welcome to FarmBridge as a ${selectedRole === 'farmer' ? 'Farmer' : 'Consumer'}!`);
-        
-        // Redirect based on role
-        navigate(`/${selectedRole}`);
+
+        const roleLabel = actualRole === 'farmer' ? 'Farmer' : 'Consumer';
+        toast.success(`🎉 Welcome to FarmBridge as a ${roleLabel}!`);
+        navigate(`/${actualRole}`);
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || 'Signup failed';
@@ -205,9 +216,8 @@ const SignUp = () => {
                       <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         onError={handleGoogleError}
-                        text="signup"
+                        text="signup_with"
                         size="large"
-                        width="100%"
                       />
                     </div>
                   </div>

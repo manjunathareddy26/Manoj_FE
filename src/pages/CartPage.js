@@ -3,6 +3,7 @@ import { Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useCartStore from '../context/cartStore';
+import imgSrc from '../utils/imgSrc';
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -20,8 +21,8 @@ const CartPage = () => {
       const quantity = Number(item.quantity) || 0;
       const weightPerBag = Number(item.weight_per_bag) || 1;
       
-      const itemTotal = item.quantityType === 'weight' 
-        ? price * (quantity / weightPerBag) 
+      const itemTotal = item.quantityType === 'kg'
+        ? price * (quantity / weightPerBag)
         : price * quantity;
       
       return sum + (itemTotal || 0);
@@ -84,7 +85,7 @@ const CartPage = () => {
               let displayQuantity = '';
               let itemPrice = 0;
               
-              if (type === 'weight') {
+              if (type === 'kg') {
                 displayQuantity = `${quantity}kg`;
                 itemPrice = (quantity / weightPerBag) * price;
               } else {
@@ -97,14 +98,17 @@ const CartPage = () => {
                   <div className="flex gap-4 mb-4">
                     {item.image && (
                       <img
-                        src={`data:image/jpeg;base64,${item.image}`}
+                        src={imgSrc(item.image)}
                         alt={item.name}
                         className="w-20 h-20 object-cover rounded-lg"
                       />
                     )}
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-[#0F172A]">{item.name}</h3>
-                      <p className="text-[#64748B]">₹{price.toLocaleString()} per bag</p>
+                      <p className="text-[#64748B]">
+                        ₹{price.toLocaleString()} / bag
+                        {weightPerBag > 0 && <span className="text-sm ml-2 text-[#94A3B8]">(₹{(price / weightPerBag).toFixed(0)}/kg)</span>}
+                      </p>
                       <p className="text-sm text-[#94A3B8]">{weightPerBag}kg per bag</p>
                     </div>
                   </div>
@@ -126,7 +130,7 @@ const CartPage = () => {
                             value={type === 'bags' ? quantity : ''}
                             onChange={(e) => handleQuantityUpdate(item.id, Math.max(1, parseInt(e.target.value) || 1), 'bags')}
                             className="flex-1 px-3 py-2 text-center font-semibold text-[#0F172A] border-0 outline-none"
-                            placeholder={type === 'weight' ? '1' : quantity}
+                            placeholder={type === 'kg' ? '1' : quantity}
                             min="1"
                           />
                           <button
@@ -142,22 +146,22 @@ const CartPage = () => {
                         <label className="text-sm text-[#64748B] font-semibold block mb-2">Or by Weight (kg)</label>
                         <div className="flex items-center border-2 border-[#E2E8F0] rounded-lg bg-white">
                           <button
-                            onClick={() => handleQuantityUpdate(item.id, Math.max(weightPerBag, quantity - weightPerBag), 'weight')}
+                            onClick={() => handleQuantityUpdate(item.id, Math.max(weightPerBag, quantity - weightPerBag), 'kg')}
                             className="p-2 text-[#64748B] hover:text-[#10b981]"
                           >
                             <Minus size={18} />
                           </button>
                           <input
                             type="number"
-                            value={type === 'weight' ? quantity : ''}
-                            onChange={(e) => handleQuantityUpdate(item.id, Math.max(weightPerBag, parseInt(e.target.value) || weightPerBag), 'weight')}
+                            value={type === 'kg' ? quantity : ''}
+                            onChange={(e) => handleQuantityUpdate(item.id, Math.max(weightPerBag, parseInt(e.target.value) || weightPerBag), 'kg')}
                             className="flex-1 px-3 py-2 text-center font-semibold text-[#0F172A] border-0 outline-none"
                             placeholder={type === 'bags' ? weightPerBag : quantity}
                             min={weightPerBag}
                             step={weightPerBag}
                           />
                           <button
-                            onClick={() => handleQuantityUpdate(item.id, quantity + weightPerBag, 'weight')}
+                            onClick={() => handleQuantityUpdate(item.id, quantity + weightPerBag, 'kg')}
                             className="p-2 text-[#64748B] hover:text-[#10b981]"
                           >
                             <Plus size={18} />

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Heart, Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -28,10 +29,10 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="/" className="hover:text-farm-500">Home</a></li>
-              <li><span className="cursor-not-allowed hover:text-farm-500">About Us</span></li>
-              <li><span className="cursor-not-allowed hover:text-farm-500">Products</span></li>
-              <li><span className="cursor-not-allowed hover:text-farm-500">Pricing</span></li>
+              <li><Link to="/" className="hover:text-farm-500">Home</Link></li>
+              <li><Link to="/signin" className="hover:text-farm-500">Sign In</Link></li>
+              <li><Link to="/signup" className="hover:text-farm-500">Sign Up</Link></li>
+              <li><Link to="/contact" className="hover:text-farm-500">About Us</Link></li>
             </ul>
           </div>
 
@@ -39,10 +40,10 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Support</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><span className="cursor-not-allowed hover:text-farm-500">Help Center</span></li>
-              <li><span className="cursor-not-allowed hover:text-farm-500">Privacy Policy</span></li>
-              <li><span className="cursor-not-allowed hover:text-farm-500">Terms of Service</span></li>
-              <li><span className="cursor-not-allowed hover:text-farm-500">Contact Us</span></li>
+              <li><Link to="/help" className="hover:text-farm-500">Help Center</Link></li>
+              <li><Link to="/privacy" className="hover:text-farm-500">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-farm-500">Terms of Service</Link></li>
+              <li><Link to="/contact" className="hover:text-farm-500">Contact Us</Link></li>
             </ul>
           </div>
 
@@ -52,15 +53,15 @@ const Footer = () => {
             <div className="space-y-4 text-gray-400">
               <div className="flex items-center gap-2">
                 <Mail size={18} />
-                <span>info@farmbr idge.com</span>
+                <span>info@farmbridge.com</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone size={18} />
-                <span>+1 (800) 123-4567</span>
+                <span>+91 8464001960</span>
               </div>
               <div className="flex items-start gap-2">
                 <MapPin size={18} className="mt-1" />
-                <span>123 Farm Road, Agriculture City, AC 12345</span>
+                <span>Gudur, Andhra Pradesh, India</span>
               </div>
             </div>
           </div>
@@ -68,7 +69,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
           <p className="flex items-center justify-center gap-1">
-            Made with <Heart size={16} className="text-farm-500" /> by FarmBridge Team
+            Made by FarmBridge Team
           </p>
           <p className="mt-2">&copy; 2024 FarmBridge. All rights reserved.</p>
         </div>

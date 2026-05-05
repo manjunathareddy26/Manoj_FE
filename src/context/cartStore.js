@@ -34,10 +34,12 @@ const useCartStore = create((set) => ({
     };
   }),
 
-  // Update quantity
-  updateQuantity: (productId, quantity) => set((state) => {
+  // Update quantity (and optionally quantityType)
+  updateQuantity: (productId, quantity, quantityType) => set((state) => {
     const updated = state.items.map(item =>
-      item.id === productId ? { ...item, quantity } : item
+      item.id === productId
+        ? { ...item, quantity, ...(quantityType ? { quantityType } : {}) }
+        : item
     );
     return {
       items: updated,

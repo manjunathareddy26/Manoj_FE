@@ -14,8 +14,8 @@ const ProfilePage = () => {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    phone: user?.phone || '',
-    location: user?.location || '',
+    phone: user?.whatsapp || '',
+    location: user?.place || '',
   });
 
   const handleInputChange = (e) => {
@@ -27,7 +27,15 @@ const ProfilePage = () => {
     setLoading(true);
     try {
       const response = await authService.updateProfile(formData);
-      setUser(response.data.user);
+      const updatedUser = response.data.user;
+      setUser(updatedUser);
+      // Re-sync form with returned user (DB uses whatsapp/place column names)
+      setFormData({
+        name: updatedUser.name || '',
+        email: updatedUser.email || '',
+        phone: updatedUser.whatsapp || '',
+        location: updatedUser.place || '',
+      });
       toast.success(t('success.profile_updated'));
       setIsEditing(false);
     } catch (error) {
