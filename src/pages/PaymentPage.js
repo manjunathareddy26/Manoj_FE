@@ -2,6 +2,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { CreditCard, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { load } from '@cashfreepayments/cashfree-js';
 import { orderService, paymentService } from '../services/index';
 
 const PaymentPage = () => {
@@ -67,21 +68,25 @@ const PaymentPage = () => {
       // Store cf_order_id for verification on return page (fallback)
       sessionStorage.setItem('cf_order_id_' + orderData.id, cf_order_id);
 
-      // ✅ FIX: use ?session_id= NOT /#
+      // Initialize Cashfree SDK and use it properly
       const env = process.env.REACT_APP_CASHFREE_ENV || 'production';
-      const baseUrl = env === 'production'
-        ? 'https://payments.cashfree.com/order'
-        : 'https://sandbox.cashfreepayments.com/order';
+      const cashfreeConfig = {
+        mode: env === 'production' ? 'production' : 'sandbox',
+      };
 
-      const checkoutUrl = `${baseUrl}?session_id=${payment_session_id}`;
-      
-      console.log('[Payment] Environment:', env);
-      console.log('[Payment] Base URL:', baseUrl);
-      console.log('[Payment] Session ID:', payment_session_id.substring(0, 50) + '...');
-      console.log('[Payment] Checkout URL:', checkoutUrl);
+      console.log('[Payment] Initializing Cashfree SDK with mode:', cashfreeConfig.mode);
 
-      // ✅ FIX: No setTimeout — redirect immediately to avoid session expiry
-      window.location.href = checkoutUrl;
+      const cashfree = await load(cashfreeConfig);
+
+      console.log('[Payment] SDK loaded, initiating checkout with session ID:', payment_session_id.substring(0, 50) + '...');
+
+      // Use SDK's checkout method instead of direct redirect
+      const checkoutResult = await cashfree.checkout({
+        paymentSessionId: payment_session_id,
+        redirectTarget: '_self', // Stay in same window/tab
+      });
+
+      console.log('[Payment] Checkout result:', checkoutResult);
 
     } catch (err) {
       console.error('[Payment] Error:', {
