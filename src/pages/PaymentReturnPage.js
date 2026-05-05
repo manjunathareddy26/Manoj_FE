@@ -35,7 +35,7 @@ const PaymentReturnPage = () => {
         if (res.data.success && res.data.status === 'PAID') {
           setStatus('success');
           toast.success('Payment successful!');
-          setTimeout(() => navigate('/consumer'), 3000);
+          setTimeout(() => navigate('/orders'), 3000);
         } else {
           setStatus('failed');
         }
@@ -95,10 +95,10 @@ const PaymentReturnPage = () => {
                 Try Again
               </button>
               <button
-                onClick={() => navigate('/consumer')}
+                onClick={() => navigate('/orders')}
                 className="w-full px-6 py-3 border border-gray-200 text-[#64748B] font-semibold rounded-xl hover:bg-gray-50 transition-all"
               >
-                Go to Dashboard
+                Go to Orders
               </button>
             </div>
           </>
