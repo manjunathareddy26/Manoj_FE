@@ -84,16 +84,14 @@ const PaymentPage = () => {
         ? 'https://payments.cashfree.com/order'
         : 'https://sandbox.cashfreepayments.com/order';
       
-      const checkoutUrl = `${baseUrl}/#${payment_session_id}`;
-      console.log('[Payment] Full checkout URL:', checkoutUrl);
+      const checkoutUrl = `${baseUrl}?session_id=${payment_session_id}`;
+      console.log('[Payment] Checkout URL:', checkoutUrl);
       console.log('[Payment] Session ID length:', payment_session_id.length);
-      console.log('[Payment] Session ID (first 50 chars):', payment_session_id.substring(0, 50));
-      console.log('[Payment] Session ID (last 50 chars):', payment_session_id.substring(payment_session_id.length - 50));
       
-      // Use a small delay to ensure sessionStorage is written before navigation
-      setTimeout(() => {
-        window.location.href = checkoutUrl;
-      }, 100);
+      // Redirect IMMEDIATELY to avoid session expiry (no setTimeout delay)
+      // Cashfree session IDs have short TTL; delaying can cause "client session is invalid" error
+      sessionStorage.setItem('cf_order_id_' + orderData.id, cf_order_id);
+      window.location.href = checkoutUrl;
 
     } catch (err) {
       console.error('[Payment] Error:', {

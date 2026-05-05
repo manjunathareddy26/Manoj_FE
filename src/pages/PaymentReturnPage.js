@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { paymentService, orderService } from '../services/index';
+import { paymentService } from '../services/index';
 
 const PaymentReturnPage = () => {
   const { appOrderId } = useParams();
@@ -17,7 +17,13 @@ const PaymentReturnPage = () => {
       const cfOrderIdFromStorage = sessionStorage.getItem(`cf_order_id_${appOrderId}`);
       const cf_order_id = cfOrderIdFromUrl || cfOrderIdFromStorage;
 
+      console.log('[PaymentReturn] appOrderId:', appOrderId);
+      console.log('[PaymentReturn] cf_order_id from URL:', cfOrderIdFromUrl);
+      console.log('[PaymentReturn] cf_order_id from storage:', cfOrderIdFromStorage);
+      console.log('[PaymentReturn] Using cf_order_id:', cf_order_id);
+
       if (!cf_order_id) {
+        console.error('[PaymentReturn] No cf_order_id found - payment cannot be verified');
         setStatus('failed');
         return;
       }
