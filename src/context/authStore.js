@@ -1,13 +1,30 @@
 import { create } from 'zustand';
 
+// Safely read persisted user from localStorage
+const getStoredUser = () => {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 const useAuthStore = create((set) => ({
-  user: null,
+  user: getStoredUser(),
   token: localStorage.getItem('token'),
   isLoading: false,
   error: null,
 
-  // Set user
-  setUser: (user) => set({ user }),
+  // Set user — also persists to localStorage
+  setUser: (user) => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+    set({ user });
+  },
 
   // Set token
   setToken: (token) => {
@@ -21,9 +38,10 @@ const useAuthStore = create((set) => ({
   // Set error
   setError: (error) => set({ error }),
 
-  // Logout
+  // Logout — clear both token and user
   logout: () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     set({ user: null, token: null });
   },
 
