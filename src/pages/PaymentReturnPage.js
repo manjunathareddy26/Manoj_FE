@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, Loader } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Loader } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { paymentService } from '../services/index';
 
@@ -8,7 +8,8 @@ const PaymentReturnPage = () => {
   const { appOrderId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState('verifying'); // verifying | success | failed
+  const [status, setStatus] = useState('verifying'); // verifying | success | failed | timeout
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
 
   useEffect(() => {
     const verify = async () => {
@@ -17,36 +18,52 @@ const PaymentReturnPage = () => {
       const cfOrderIdFromStorage = sessionStorage.getItem(`cf_order_id_${appOrderId}`);
       const cf_order_id = cfOrderIdFromUrl || cfOrderIdFromStorage;
 
-      console.log('[PaymentReturn] appOrderId:', appOrderId);
+      console.log('[PaymentReturn] Verifying payment for order:', appOrderId);
       console.log('[PaymentReturn] cf_order_id from URL:', cfOrderIdFromUrl);
       console.log('[PaymentReturn] cf_order_id from storage:', cfOrderIdFromStorage);
       console.log('[PaymentReturn] Using cf_order_id:', cf_order_id);
 
       if (!cf_order_id) {
-        console.error('[PaymentReturn] No cf_order_id found - payment cannot be verified');
+        console.error('[PaymentReturn] No cf_order_id found - cannot verify payment');
         setStatus('failed');
         return;
       }
 
       try {
         const res = await paymentService.verifyCashfreePayment({ cf_order_id, appOrderId });
+        console.log('[PaymentReturn] Verification response:', res.data);
         sessionStorage.removeItem(`cf_order_id_${appOrderId}`);
 
         if (res.data.success && res.data.status === 'PAID') {
+          console.log('[PaymentReturn] Payment verified successfully');
           setStatus('success');
           toast.success('Payment successful!');
           setTimeout(() => navigate('/orders'), 3000);
         } else {
+          console.log('[PaymentReturn] Payment not in PAID status:', res.data.status);
           setStatus('failed');
+          toast.error('Payment could not be verified. Please check your order status.');
         }
       } catch (err) {
-        console.error('Payment return verification error:', err);
-        setStatus('failed');
+        console.error('[PaymentReturn] Verification error:', {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+        });
+        
+        // If verification fails, but we have an order ID, allow manual navigation
+        if (verificationAttempts < 2) {
+          setVerificationAttempts(prev => prev + 1);
+          // Retry once after 2 seconds
+          setTimeout(verify, 2000);
+        } else {
+          setStatus('timeout');
+        }
       }
     };
 
     verify();
-  }, [appOrderId, searchParams, navigate]);
+  }, [appOrderId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F8FAFC] to-[#E8EFF7] flex items-center justify-center p-4">
@@ -99,6 +116,35 @@ const PaymentReturnPage = () => {
                 className="w-full px-6 py-3 border border-gray-200 text-[#64748B] font-semibold rounded-xl hover:bg-gray-50 transition-all"
               >
                 Go to Orders
+              </button>
+            </div>
+          </>
+        )}
+
+        {status === 'timeout' && (
+          <>
+            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <AlertCircle size={48} className="text-yellow-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Taking Longer Than Expected</h1>
+            <p className="text-[#64748B] mb-2">
+              We're still verifying your payment for order <span className="font-semibold">#{appOrderId}</span>.
+            </p>
+            <p className="text-sm text-[#64748B] mb-6">
+              Your payment may have been processed. You can check your order status below.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => navigate('/orders')}
+                className="w-full px-6 py-3 bg-gradient-to-r from-[#10b981] to-[#059669] text-white font-bold rounded-xl hover:shadow-lg transition-all"
+              >
+                View My Orders
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full px-6 py-3 border border-gray-200 text-[#64748B] font-semibold rounded-xl hover:bg-gray-50 transition-all"
+              >
+                Refresh & Retry
               </button>
             </div>
           </>
