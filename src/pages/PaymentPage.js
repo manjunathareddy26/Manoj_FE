@@ -85,7 +85,10 @@ const PaymentPage = () => {
         : 'https://sandbox.cashfreepayments.com/order';
       
       const checkoutUrl = `${baseUrl}/#${payment_session_id}`;
-      console.log('[Payment] Redirecting to:', baseUrl, 'with session starting:', payment_session_id.substring(0, 20) + '...');
+      console.log('[Payment] Full checkout URL:', checkoutUrl);
+      console.log('[Payment] Session ID length:', payment_session_id.length);
+      console.log('[Payment] Session ID (first 50 chars):', payment_session_id.substring(0, 50));
+      console.log('[Payment] Session ID (last 50 chars):', payment_session_id.substring(payment_session_id.length - 50));
       
       // Use a small delay to ensure sessionStorage is written before navigation
       setTimeout(() => {
